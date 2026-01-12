@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>주식 상승/하락 예측</title>
+</head>
+<body>
+    <h2>삼성전자 주식 상승/하락 확률 예측</h2>
+
+    <label for="startDate">시작 날짜:</label>
+    <input type="date" id="startDate" value="2024-09-01">
+    <br><br>
+    
+    <label for="endDate">종료 날짜:</label>
+    <input type="date" id="endDate" value="2024-12-31">
+    <br><br>
+    
+    <button onclick="predictStock()">예측 실행</button>
+
+    <script>
+    // 시그모이드 함수
+    function sigmoid(x) {
+        return 1 / (1 + Math.exp(-x));
+    }
+
+    // 임의 주가 데이터 생성 (실제 데이터는 서버 API 필요)
+    function generatePrices(length = 60) {
+        let prices = [100]; // 초기값
+        for (let i = 1; i < length; i++) {
+            let change = (Math.random() - 0.5) * 2; // -1 ~ 1%
+            prices.push(prices[i-1] * (1 + change / 100));
+        }
+        return prices;
+    }
+
+    function predict_up_down(prices) {
+        let returns = [];
+        for (let i = 1; i < prices.length; i++) {
+            returns.push((prices[i] - prices[i-1]) / prices[i-1]);
+        }
+        let mean_return = returns.reduce((a,b) => a+b, 0) / returns.length;
+
+        let variance = returns.reduce((a,b) => a + (b - mean_return)**2, 0) / returns.length;
+        let volatility = Math.sqrt(variance);
+
+        let score = mean_return / (volatility + 1e-6);
+        let up_prob = sigmoid(score);
+        let down_prob = 1 - up_prob;
+
+        return {up_prob, down_prob, volatility};
+    }
+
+    function predictStock() {
+        const start = document.getElementById("startDate").value;
+        const end = document.getElementById("endDate").value;
+
+        if (!start || !end) {
+            alert("날짜를 모두 입력해주세요!");
+            return;
+        }
+
+        let prices = generatePrices(60); // 최근 60일치 임의 데이터
+        let result = predict_up_down(prices);
+
+        alert(
+            `기간: ${start} ~ ${end}\n` +
+            `📈 상승 확률: ${(result.up_prob*100).toFixed(1)}%\n` +
+            `📉 하락 확률: ${(result.down_prob*100).toFixed(1)}%\n` +
+            `📊 변동성 지표: ${result.volatility.toFixed(4)}`
+        );
+    }
+    </script>
+</body>
+</html>
